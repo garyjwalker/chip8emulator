@@ -5,6 +5,7 @@
 #include <array>
 #include <bitset>
 #include "chip8.h"
+#include "screenProperties.h"
 
 class display
 {
@@ -15,13 +16,11 @@ public:
 	bool isOpen() {return window.isOpen();}
 	void dumpScreenBuffer() const;
 private:
-	const unsigned screenWidth {64};
-	const unsigned screenHeight {32};
 	const float pixelSize {8.0};
-	sf::Color colorOn = sf::Color::White;
-	sf::Color colorOff = sf::Color::Black;
-	std::array<sf::RectangleShape, 32*64> pixels;
-	std::bitset<32*64> screenBuffer;
+	const sf::Color colorOn {sf::Color::White};
+	const sf::Color colorOff {sf::Color::Black};
+	std::array<sf::RectangleShape, screenHeight * screenWidth> pixels;
+	std::bitset<screenHeight * screenWidth> screenBuffer;
 	sf::RenderWindow window;
 };
 
