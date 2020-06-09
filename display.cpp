@@ -4,7 +4,7 @@
 display::display()
 {
 	// create window.
-	window.create(sf::VideoMode(screenWidth * 8, screenHeight * 8), "Gary's Chip8 Emulator", sf::Style::Close);
+	window.create(sf::VideoMode(screenWidth * 8, screenHeight * 8), titleBarMsg, sf::Style::Close);
 	
 	// Set properties of the "pixels."
 	for (int index {}; index < pixels.size(); ++index)
