@@ -19,7 +19,6 @@ const short sizeOfStack = 16;
 const short sizeOfMemory = 4096;
 
 const short numOfRegisters = 16;
-enum registerNames {V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,VA,VB,VC,VD,VE,VF};
 
 class chip8
 {
