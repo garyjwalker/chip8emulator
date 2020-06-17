@@ -25,13 +25,14 @@ class chip8
 public:
 	chip8();
 	~chip8() = default;
+	void reset();
 	void step();
 	void loadProgramFromMem(const std::vector<byte>& program);
-	void debug() const;
-	void dumpMemory() const;
-	void dumpScreenBuffer() const;
 	std::bitset<screenHeight * screenWidth>& getScreenBuffer();
 	bool screenBufferHasChanged() const;
+	byte getMem(const size_t address) const;
+	byte getReg(const short address) const;
+	dbyte getProgCounter() const {return programCounter};
 private:
 	void loadCharacterSet();
 	std::array<byte,  numOfRegisters> registers;
