@@ -11,13 +11,23 @@
 
 chip8::chip8()
 {
+	reset();
+}
+
+
+/// /brief Resets chip8 class as if just turned on.
+void chip8::reset()
+{
 	// Initialize memory.
 	registers.fill(0);
 	stack.fill(0);
 	screenBuffer.reset();	// bitset.reset sets all bits to 0.
 	memory.fill(0);
 	loadCharacterSet();
-	
+	stackPointer = 0;
+	indexRegister = 0;
+	programCounter = 0x200;
+	drawFlag = false;
 	// Seed random number generator.
 	srand(time(nullptr));
 }
@@ -143,8 +153,8 @@ void chip8::step()
 					/// Set Vx = Vx + Vy, set VF = carry.
 					/// The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) 
 					/// VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
-					short registerX {(opcode & 0x0F00) >> 8};		// Registers.
-					short registerY {(opcode & 0x00F0) >> 8};
+					short registerX {static_cast<short>((opcode & 0x0F00) >> 8)};	// Registers.
+					short registerY {static_cast<short>((opcode & 0x00F0) >> 4)};
 					unsigned short valueX {registers[registerX]};	// Value of register x.
 					unsigned short valueY {registers[registerY]};	// Value of register y.
 					valueX += valueY;
@@ -163,8 +173,8 @@ void chip8::step()
 					/// Set Vx = Vx - Vy, set VF = NOT borrow.
 					/// If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, 
 					/// and the results stored in Vx.
-					short registerX {(opcode & 0x0F00) >> 8};		// Registers.
-					short registerY {(opcode & 0x00F0) >> 8};
+					short registerX {static_cast<short>((opcode & 0x0F00) >> 8)};		// Registers.
+					short registerY {static_cast<short>((opcode & 0x00F0) >> 4)};
 					unsigned short valueX {registers[registerX]};	// Value of register x.
 					unsigned short valueY {registers[registerY]};	// Value of register y.
 					
@@ -182,19 +192,19 @@ void chip8::step()
 					/// Set Vx = Vx SHR 1.
 					/// Shift right. If the least-significant bit of Vx is 1, then VF is set to 1, 
 					/// otherwise 0. Then Vx is divided by 2.
-					if (registers[(opcode & 0x0F00)] & 0x0001)
+					if (registers[(opcode & 0x0F00) >> 8] & 0x0001)
 						registers[0xF] = 1;
 					else
 						registers[0xF] = 0;
-					registers[(opcode & 0x0F00)] >> 1;	/// Shifting bits to right 1 is same as dividing by 1.
+					registers[(opcode & 0x0F00) >> 8] >> 1;	/// Shifting bits to right 1 is same as dividing by 1.
 					break;
 				case 0x0007: {
 					/// /brief 8xy7 - SUBN Vx, Vy
 					/// Set Vx = Vy - Vx, set VF = NOT borrow.
 					/// If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the 
 					/// results stored in Vx.
-					short registerX {(opcode & 0x0F00) >> 8};		// Registers.
-					short registerY {(opcode & 0x00F0) >> 8};
+					short registerX {static_cast<short>((opcode & 0x0F00) >> 8)};		// Registers.
+					short registerY {static_cast<short>((opcode & 0x00F0) >> 4)};
 					unsigned short valueX {registers[registerX]};	// Value of register x.
 					unsigned short valueY {registers[registerY]};	// Value of register y.
 					
@@ -249,7 +259,7 @@ void chip8::step()
 			/// Set Vx = random byte AND kk.
 			/// The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. 
 			/// The results are stored in Vx.
-			byte randomNumber {rand() % 255};
+			byte randomNumber {static_cast<byte>(rand() % 255)};
 			randomNumber &= (opcode & 0x00FF);
 			registers[opcode & 0x0F00] = randomNumber;
 			} break;
@@ -300,6 +310,7 @@ void chip8::step()
 	}
 }
 
+
 void chip8::loadProgramFromMem(const std::vector<byte>& program)
 {
 	dbyte start {0x200};
@@ -310,49 +321,6 @@ void chip8::loadProgramFromMem(const std::vector<byte>& program)
 	}
 }
 
-void chip8::debug() const
-{
-	// Output registers.
-	std::cout << " - Registers -\n";
-	std::cout << "I: " << std::setw(4) << std::setfill('0') << std::hex << std::uppercase << static_cast<short>(indexRegister) << std::endl; 
-	std::cout << "Program Counter: " << std::setw(4) << std::hex << std::uppercase << static_cast<short>(programCounter) << std::endl; 
-	for (unsigned int index {}; index < registers.size(); ++index)
-	{
-		std::cout << "V" << std::hex << std::uppercase << index << ":" << std::setw(2) << std::right << std::hex << static_cast<short>(registers[index]) << ' ';
-		if (index % 2) { std::cout << std::endl; }
-	}
-	std::cout << std::endl;
-}
-
-void chip8::dumpMemory() const
-{
-	// Dump registers.
-	debug();
-	// Dump video buffer.
-	dumpScreenBuffer();
-	// Dump memory.
-	std::cout << " - Memory Dump -\n";
-	unsigned short cols {1};
-	for (const auto& pMem : memory)
-	{
-		std::cout << std::setw(2) << std::hex << std::setfill('0') << static_cast<short>(pMem) << " ";
-		if (!(cols++ % 16)) {std::cout << std::endl;}
-	}
-}
-
-
-void chip8::dumpScreenBuffer() const
-{
-	// Dump contents of video buffer to standard out by row.
-	// Print 1 for true. 0 for false.
-	std::cout << " - Video Buffer - " << std::endl;
-	for (size_t index {}; index < screenBuffer.size(); ++index)
-	{
-		std::cout << ( screenBuffer[index] ? "*" : "0");
-		if (!((index + 1) % screenWidth)) {std::cout << std::endl;}
-	}
-	std::cout << std::endl;
-}
 
 void chip8::loadCharacterSet()
 {
@@ -369,8 +337,29 @@ std::bitset<screenHeight * screenWidth>& chip8::getScreenBuffer()
 	drawFlag = false;
 	return screenBuffer;
 }
+
 	
 bool chip8::screenBufferHasChanged() const
 {
 	return drawFlag;
+}
+
+
+byte chip8::getMem(const size_t address) const
+{
+	if (address > memory.size())
+	{
+		throw;
+	}
+	return memory[address];
+}
+
+
+byte chip8::getReg(const short address) const
+{
+	if (address > registers.size())
+	{
+		throw;
+	}
+	return registers[address];
 }
